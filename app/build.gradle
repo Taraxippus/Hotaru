@@ -20,5 +20,6 @@ android {
 }
 
 dependencies {
+	compile project(':Yui:app')
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
