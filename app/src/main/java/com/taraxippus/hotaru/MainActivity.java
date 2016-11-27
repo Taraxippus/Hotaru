@@ -3,13 +3,14 @@ package com.taraxippus.hotaru;
 import android.opengl.GLES20;
 import com.taraxippus.yui.Main;
 import com.taraxippus.yui.game.Game;
+import com.taraxippus.yui.game.OutlineSceneObject;
 import com.taraxippus.yui.game.SceneObject;
 import com.taraxippus.yui.model.Model;
 import com.taraxippus.yui.render.Pass;
 import com.taraxippus.yui.util.PoissonDisk;
+import com.taraxippus.yui.util.SimplexNoise;
 import com.taraxippus.yui.util.VectorF;
 import java.util.ArrayList;
-import com.taraxippus.yui.util.SimplexNoise;
 
 public class MainActivity extends Main
 {
@@ -24,10 +25,14 @@ public class MainActivity extends Main
 	@Override
 	public void initPasses()
 	{
-		passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene_normal, com.taraxippus.yui.R.raw.fragment_scene_normal, new String[] { "a_Position", "a_Normal" },  new int[] { 3, 3 }, new String[] { "u_MVP", "u_N" });
+		//passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene_normal, com.taraxippus.yui.R.raw.fragment_scene_normal, new String[] { "a_Position", "a_Normal" },  new int[] { 3, 3 }, new String[] { "u_MVP", "u_N" });
 		//passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene, com.taraxippus.yui.R.raw.fragment_scene, new String[] { "a_Position" },  new int[] { 3 }, new String[] { "u_MVP" });
 		
+		passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene_normal, com.taraxippus.yui.R.raw.fragment_scene_light, new String[] { "a_Position", "a_Normal" },  new int[] { 3, 3 }, new String[] { "u_MVP", "u_N" });
 		GLES20.glUniform4f(PASS_SCENE.getProgram().getUniform("u_Fog"), 0.0F, 0.25F, 1F, 0.01F);
+		final VectorF light = new VectorF().set(0, -1, -0.5F).normalize().release();
+		GLES20.glUniform4f(PASS_SCENE.getProgram().getUniform("u_Light"), light.x, light.y, light.z, 0.9F);
+		
 		//passes[1] = PASS_BLOOM1 = new Pass.Bloom(this, renderer.width, renderer.height, true, 0, 0, 0.75F, -0.25F);
 		//passes[2] = PASS_BLOOM2 = new Pass.Bloom(this, renderer.width, renderer.height, false);
 		
