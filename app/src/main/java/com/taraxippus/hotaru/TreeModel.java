@@ -47,12 +47,12 @@ public class TreeModel extends Model
 		rotation.rotateX((float) Math.PI / 32F * random.nextFloat());
 		Quaternion up = Quaternion.obtain().set(rotation);
 		
-		int trunkRings = 4 + random.nextInt(4);
-		int trunkSectors = 3 + random.nextInt(4);
+		int trunkRings = 8 + random.nextInt(4);
+		int trunkSectors = 4;
 		float width, minWidth = (0.5F + random.nextFloat() * 0.25F) * (width = 0.075F + 0.05F * random.nextFloat());
-		float height = trunkRings * width * 3F;
+		float height = trunkRings * width * 1.5F;
 
-		ArrayList<Branch> branches = new ArrayList<Branch>();
+		final ArrayList<Branch> branches = new ArrayList<Branch>();
 		
 		int dirChange = random.nextInt(1);
 		int x, y;
@@ -83,17 +83,21 @@ public class TreeModel extends Model
 				tmp.set(0, y == 0 ? 0.1F : height / trunkRings, 0).rotate(rotation);
 				center.add(tmp);
 
-				if (y > 0 && random.nextInt(4) == 0)
+				if (y > 0 && random.nextInt(3) == 0)
 				{
 					dirChange++;
-					float rotationX = (dirChange % 2 == 1 ? -1 : 1) * (float) Math.PI / 8F * random.nextFloat();
-					rotation.rotateX(rotationX);
+					float rotationZ = (dirChange % 2 == 1 ? -1 : 1) * (float) Math.PI / 16F * random.nextFloat();
 					
-					if (random.nextInt(3) != 0)
-						branches.add(new Branch(VectorF.obtain().set(center), Quaternion.obtain().set(rotation).rotateX((dirChange % 2 == 1 ? 1 : -1) * (float) Math.PI / 8F * (0.5F + random.nextFloat()) - rotationX * 2), up, width, (trunkRings - y), (y + 1) * trunkSectors));
+					if (y > trunkRings / 3 && random.nextInt(3) != 0)
+					{
+						rotationZ = (dirChange % 2 == 1 ? -1 : 1) * (float) Math.PI / 12F * (1 + random.nextFloat());
+						branches.add(new Branch(VectorF.obtain().set(tmp).multiplyBy(0.5F).add(center), Quaternion.obtain().set(rotation).rotateZ(-rotationZ), up, width, (trunkRings - y) / 2, (y + 1) * trunkSectors));
+					}
+						
+					rotation.rotateZ(rotationZ);
 				}
 				else if (y > 0 && random.nextInt(2) == 0)
-					rotation.rotateY((float) -Math.PI / 32 * random.nextFloat());
+					rotation.rotateY((float) -Math.PI / 16 * random.nextFloat());
 				
 				faces.add(new TriangleIndices(y * trunkSectors + x - 1, y * trunkSectors, (y + 1) * trunkSectors + x - 1));
 				faces.add(new TriangleIndices(y * trunkSectors, (y + 1) * trunkSectors, (y + 1) * trunkSectors + x - 1));
@@ -175,15 +179,19 @@ public class TreeModel extends Model
 			this.width = width;
 			this.rings = rings;
 			this.trunk = (short) trunk;
+			
+			this.direction.rotateX((random.nextBoolean() ? -1 : 1) * (0.5F + random.nextFloat() * 0.5F) * (float) Math.PI / 2F);
 		}
 		
 		public void generate()
 		{
 			int faceOffset = vertices.size();
-			float length = width * rings * 1.25F;
-			float minWidth = (0.5F + random.nextFloat() * 0.25F) * width;
+			float length = width * rings * 3F;
+			float minWidth = (0.25F + random.nextFloat() * 0.25F) * width;
 			final VectorF tmp = VectorF.obtain();
-			Quaternion rotation = Quaternion.obtain();
+			Quaternion rotation = Quaternion.obtain().set(direction);
+			
+			final ArrayList<Branch> branches = new ArrayList<Branch>();
 			
 			int x, y;
 			for (y = 0; y <= rings; ++y)
@@ -212,17 +220,23 @@ public class TreeModel extends Model
 				{
 					faces.add(new TriangleIndices(faceOffset + y * 4 + x - 1, faceOffset + y * 4, faceOffset + (y + 1) * 4 + x - 1));
 					faces.add(new TriangleIndices(faceOffset + y * 4, faceOffset + (y + 1) * 4, faceOffset + (y + 1) * 4 + x - 1));
+				
+					//if (y > 1 && random.nextInt(3) != 0)
+						//branches.add(new Branch(VectorF.obtain().set(offset), Quaternion.obtain().set(rotation), up, width, (rings - y), faceOffset + (y + 1) * 4));
 				}
 			}
 			
 			faces.add(new TriangleIndices(trunk, trunk + 1, faceOffset));
 			faces.add(new TriangleIndices(trunk + 1, faceOffset + 1, faceOffset));
 			faces.add(new TriangleIndices(trunk + 1, trunk + 2, faceOffset + 1));
-			faces.add(new TriangleIndices(trunk + 2, faceOffset + 1, faceOffset + 1));
+			faces.add(new TriangleIndices(trunk + 2, faceOffset + 2, faceOffset + 1));
 			faces.add(new TriangleIndices(trunk + 2, trunk + 3, faceOffset + 2));
 			faces.add(new TriangleIndices(trunk + 3, faceOffset + 3, faceOffset + 2));
 			faces.add(new TriangleIndices(trunk + 3, trunk, faceOffset + 3));
 			faces.add(new TriangleIndices(trunk, faceOffset, faceOffset + 3));
+
+			for (Branch b : branches)
+				b.generate();
 			
 			generateLeaves(offset, false);
 			
@@ -230,7 +244,6 @@ public class TreeModel extends Model
 			rotation.release();
 			offset.release();
 			direction.release();
-			up.release();
 		}
 	}
 }

@@ -17,7 +17,7 @@ public class MainActivity extends Main
 	public static Pass PASS_SCENE;
 	public static Pass.Post PASS_POST;
 	public static Pass.Bloom PASS_BLOOM1, PASS_BLOOM2;
-	public static final Pass[] passes = new Pass[2];
+	public static final Pass[] passes = new Pass[1];
 	
 	@Override
 	public Game createGame() { return new MainGame(this); }
@@ -36,7 +36,7 @@ public class MainActivity extends Main
 		//passes[1] = PASS_BLOOM1 = new Pass.Bloom(this, renderer.width, renderer.height, true, 0, 0, 0.75F, -0.25F);
 		//passes[2] = PASS_BLOOM2 = new Pass.Bloom(this, renderer.width, renderer.height, false);
 		
-		passes[1] = PASS_POST = new Pass.DefaultPost(this, renderer.width, renderer.height, 0.8F, 0.2F, new int[] { /*"PASS_BLOOM2.getFramebufferTexUnit()*/ });
+		//passes[1] = PASS_POST = new Pass.DefaultPost(this, renderer.width, renderer.height, 0.8F, 0.2F, new int[] { /*"PASS_BLOOM2.getFramebufferTexUnit()*/ });
 	
 		//PASS_BLOOM1.setInputTexture(PASS_POST.getFramebufferTexUnit());
 		//PASS_BLOOM2.setInputTexture(PASS_BLOOM1.getFramebufferTexUnit());
