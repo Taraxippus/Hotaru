@@ -1,23 +1,32 @@
 package com.taraxippus.hotaru;
 
 import android.opengl.GLES20;
+import android.opengl.GLSurfaceView;
+import android.view.MotionEvent;
 import com.taraxippus.yui.Main;
 import com.taraxippus.yui.game.Game;
 import com.taraxippus.yui.game.OutlineSceneObject;
 import com.taraxippus.yui.game.SceneObject;
+import com.taraxippus.yui.game.TexturedSceneObject;
 import com.taraxippus.yui.model.Model;
+import com.taraxippus.yui.model.UVBoxModel;
+import com.taraxippus.yui.render.ConfigChooser;
 import com.taraxippus.yui.render.Pass;
-import com.taraxippus.yui.util.PoissonDisk;
-import com.taraxippus.yui.util.SimplexNoise;
+import com.taraxippus.yui.texture.NoiseTexture;
+import com.taraxippus.yui.texture.ProceduralTexture;
 import com.taraxippus.yui.util.VectorF;
-import java.util.ArrayList;
+import java.util.Random;
+import com.taraxippus.yui.game.ParticleEmitter;
+import com.taraxippus.yui.model.BoxModel;
 
 public class MainActivity extends Main
 {
-	public static Pass PASS_SCENE;
-	public static Pass.Post PASS_POST;
-	public static Pass.Bloom PASS_BLOOM1, PASS_BLOOM2;
-	public static final Pass[] passes = new Pass[1];
+	public static Pass PASS_SCENE, PASS_SCENE_OUTLINE, PASS_SCENE_TEXTURE, PASS_PARTICLE;
+	public static Pass.DefaultPost PASS_POST;
+	public static Pass.Bloom PASS_BLOOM1, PASS_BLOOM2, PASS_BLOOM3, PASS_BLOOM4, PASS_BLOOM5, PASS_BLOOM6;
+	public static final Pass[] passes = new Pass[9];
+	
+	public static final float FOG = 0.05F;
 	
 	@Override
 	public Game createGame() { return new MainGame(this); }
@@ -25,21 +34,28 @@ public class MainActivity extends Main
 	@Override
 	public void initPasses()
 	{
-		//passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene_normal, com.taraxippus.yui.R.raw.fragment_scene_normal, new String[] { "a_Position", "a_Normal" },  new int[] { 3, 3 }, new String[] { "u_MVP", "u_N" });
-		//passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene, com.taraxippus.yui.R.raw.fragment_scene, new String[] { "a_Position" },  new int[] { 3 }, new String[] { "u_MVP" });
-		
-		passes[0] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene_normal, com.taraxippus.yui.R.raw.fragment_scene_light, new String[] { "a_Position", "a_Normal" },  new int[] { 3, 3 }, new String[] { "u_MVP", "u_N" });
-		GLES20.glUniform4f(PASS_SCENE.getProgram().getUniform("u_Fog"), 0.0F, 0.25F, 1F, 0.01F);
-		final VectorF light = new VectorF().set(0, -1, -0.5F).normalize().release();
-		GLES20.glUniform4f(PASS_SCENE.getProgram().getUniform("u_Light"), light.x, light.y, light.z, 0.9F);
-		
-		//passes[1] = PASS_BLOOM1 = new Pass.Bloom(this, renderer.width, renderer.height, true, 0, 0, 0.75F, -0.25F);
-		//passes[2] = PASS_BLOOM2 = new Pass.Bloom(this, renderer.width, renderer.height, false);
-		
-		//passes[1] = PASS_POST = new Pass.DefaultPost(this, renderer.width, renderer.height, 0.8F, 0.2F, new int[] { /*"PASS_BLOOM2.getFramebufferTexUnit()*/ });
+		int pass = 0;
+		passes[pass++] = PASS_SCENE = new Pass(this, com.taraxippus.yui.R.raw.vertex_scene, com.taraxippus.yui.R.raw.fragment_scene, new String[] { "a_Position" },  new int[] { 3 }, new String[] { "u_MVP", "u_MV" });
+		GLES20.glUniform4f(PASS_SCENE.getProgram().getUniform("u_Fog"), 0.25F, 0.25F, 0.25F, FOG);
 	
-		//PASS_BLOOM1.setInputTexture(PASS_POST.getFramebufferTexUnit());
-		//PASS_BLOOM2.setInputTexture(PASS_BLOOM1.getFramebufferTexUnit());
+		passes[pass++] = PASS_PARTICLE = new Pass.DefaultParticle(this);
+		GLES20.glUniform4f(PASS_PARTICLE.getProgram().getUniform("u_Fog"), 0.25F, 0.25F, 0.25F, FOG * 0.25F);
+		
+		passes[pass++] = PASS_BLOOM1 = new Pass.Bloom(this, renderer.width / 2, renderer.height / 2, 1, true, 0.75F, 0.125F, 0.125F, -0.7F);
+		passes[pass++] = PASS_BLOOM2 = new Pass.Bloom(this, renderer.width / 2, renderer.height / 2, 2, false);
+		passes[pass++] = PASS_BLOOM3 = new Pass.Bloom(this, renderer.width / 4, renderer.height / 4, 1, true);
+		passes[pass++] = PASS_BLOOM4 = new Pass.Bloom(this, renderer.width / 4, renderer.height / 4, 2, false);
+		passes[pass++] = PASS_BLOOM5 = new Pass.Bloom(this, renderer.width / 8, renderer.height / 8, 1, true);
+		passes[pass++] = PASS_BLOOM6 = new Pass.Bloom(this, renderer.width / 8, renderer.height / 8, 2, false);
+		
+		passes[pass++] = PASS_POST = new Pass.DefaultPost(this, renderer.width, renderer.height, 0.5F, 0.2F, new int[] { PASS_BLOOM2.getFramebufferTexUnit(), PASS_BLOOM4.getFramebufferTexUnit(), PASS_BLOOM6.getFramebufferTexUnit() });
+	
+		PASS_BLOOM1.setInputTexture(PASS_POST.getFramebufferTexUnit());
+		PASS_BLOOM2.setInputTexture(PASS_BLOOM1.getFramebufferTexUnit());
+		PASS_BLOOM3.setInputTexture(PASS_BLOOM2.getFramebufferTexUnit());
+		PASS_BLOOM4.setInputTexture(PASS_BLOOM3.getFramebufferTexUnit());
+		PASS_BLOOM5.setInputTexture(PASS_BLOOM4.getFramebufferTexUnit());
+		PASS_BLOOM6.setInputTexture(PASS_BLOOM5.getFramebufferTexUnit());
 	}
 
 	@Override
@@ -49,39 +65,67 @@ public class MainActivity extends Main
 	public Pass getDefaultPass() { return PASS_SCENE; }
 
 	@Override
-	public Pass getDefaultParticlePass() { return null; }
+	public Pass getDefaultParticlePass() { return PASS_PARTICLE; }
 
 	@Override
-	public VectorF getClearColor() { return VectorF.obtain().set(0, 0.5F, 1).release(); }
+	public GLSurfaceView.EGLConfigChooser getConfigChooser() { return new ConfigChooser(this, false, false); }
+	
+	@Override
+	public VectorF getClearColor() { return VectorF.obtain().set(0.25F, 0.25F, 0.25F).release(); }
 
 	@Override
 	public Pass getPostPass() { return PASS_POST; }
 	
 	public class MainGame extends Game
 	{
+		final ProceduralTexture texture = new NoiseTexture(new Random(), 16, 16, 254, 255);
+		
 		public MainGame(Main main) { super(main); }
 		
 		@Override
 		public void init()
 		{
-			this.setUseDefaultCamera(true);
+			this.setUseDefaultCamera(true, false);
+			camera.rotation.set(-45, 0, 0);
+			camera.position.set(0, 1, -1);
+			camera.updateView();
 			
-			final ArrayList<VectorF> positions = PoissonDisk.randomDistribution(world.random, 10, 10, 0.5F, 30);
-			final SimplexNoise noise = new SimplexNoise(256, 0.5F, world.random.nextLong());
+			world.add(new SceneObject(world, new BoxModel(PASS_SCENE)).scale(5F, 0.1F, 5F).setColor(0x666666));
 			
-			for (VectorF v : positions)
-			{
-				final Model treeModel = new TreeModel(PASS_SCENE, world.random);
+			texture.init();		
+			ParticleEmitter pe = new ParticleEmitter(world, 150);
+			pe.color_start_min.set(1.2F, 0.5F, 0.1F);
+			pe.color_start_max.set(1.0F, 0.8F, 0.15F);
+			pe.color_end_min.set(1.0F, 0.5F, 0.05F);
+			pe.color_end_max.set(2.0F, 0.25F, 0.025F);
+			pe.acceleration = 0.99F;
+			pe.minAlphaStart = 1F;
+			pe.maxAlphaStart = 1F;
+			pe.minAlphaEnd = 1.0F;
+			pe.maxAlphaEnd = 0.75F;
+			pe.minLifetime = 2F;
+			pe.maxLifetime = 3F;
+			pe.maxMinSize = 0;
+			pe.minMinSize = 0;
+			pe.minMaxSize = 0.01F;
+			pe.setTexture(texture);
+			pe.renderAlways = true;
+			pe.translate(0, 0.5F, 0);
+			world.add(pe);
+		}
 
-				SceneObject tree = new SceneObject(world, treeModel);
-				tree.translate(v.x, noise.getNoise(v.x * 7, v.z * 7) * 0.5F, v.z);
-				world.add(tree);
-				
-				v.release();
-			}
+		@Override
+		public void delete()
+		{
+			super.delete();
 			
-			camera.position.add(0, 1, - 3);
-			//camera.setTarget(box);
+			texture.delete();
+		}
+
+		@Override
+		public void onTap(MotionEvent e)
+		{
+			
 		}
 	}
 }
